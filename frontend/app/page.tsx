@@ -209,7 +209,7 @@ export default function Home() {
       <footer className="backdrop-blur-sm bg-gray-900/60 border-t border-gray-800/60">
         <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
           <p className="text-center text-gray-400">
-            © 2024 Forum. Tous droits réservés.
+            © 2025 Foseos. Tous droits réservés.
           </p>
         </div>
       </footer>
