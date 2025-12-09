@@ -1,21 +1,109 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import Navbar from '../components/Navbar';
+
+interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  bio: string;
+  date_inscription: string;
+  nombre_posts: number;
+}
+
+interface Topic {
+  id: number;
+  title: string;
+  category: string;
+  reply_count: number;
+  created_at: string;
+}
 
 export default function Profile() {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState({
-    username: 'UserExample',
-    email: 'user@example.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    bio: 'Passionné de technologie et de discussions enrichissantes.',
-    memberSince: 'Janvier 2024',
-    postsCount: 42,
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [recentPosts, setRecentPosts] = useState<Topic[]>([]);
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    bio: ''
   });
+  const [submitting, setSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState(profile);
+  useEffect(() => {
+    fetchProfile();
+    fetchUserTopics();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const { authAPI } = await import('../api');
+      const response = await authAPI.getCurrentUser();
+      setProfile(response.data);
+      setFormData({
+        first_name: response.data.first_name || '',
+        last_name: response.data.last_name || '',
+        email: response.data.email || '',
+        bio: response.data.bio || ''
+      });
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Erreur lors du chargement du profil:', err);
+      if (err.response?.status === 401) {
+        // Non authentifié, rediriger vers login
+        router.push('/auth/login');
+      } else {
+        setError('Impossible de charger le profil');
+        setLoading(false);
+      }
+    }
+  };
+
+  const fetchUserTopics = async () => {
+    try {
+      const { topicsAPI, authAPI } = await import('../api');
+      const userResponse = await authAPI.getCurrentUser();
+      const topicsResponse = await topicsAPI.getTopics();
+
+      // Filtrer les topics de l'utilisateur connecté
+      const userTopics = topicsResponse.data.filter(
+        (topic: any) => topic.author === userResponse.data.id
+      );
+      setRecentPosts(userTopics.slice(0, 5)); // Garder les 5 plus récents
+    } catch (err) {
+      console.error('Erreur lors du chargement des topics:', err);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long'
+    });
+  };
+
+  const formatDateRelative = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffDays === 0) return "Aujourd'hui";
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `Il y a ${diffDays} jours`;
+    if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} semaine${Math.floor(diffDays / 7) > 1 ? 's' : ''}`;
+    return date.toLocaleDateString('fr-FR');
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -26,59 +114,56 @@ export default function Profile() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfile(formData);
-    setIsEditing(false);
+    setSubmitting(true);
+    setError('');
+
+    try {
+      const { authAPI } = await import('../api');
+      const response = await authAPI.updateProfile(formData);
+      setProfile(response.data);
+      setIsEditing(false);
+      setSubmitting(false);
+    } catch (err: any) {
+      console.error('Erreur lors de la mise à jour du profil:', err);
+      setError('Erreur lors de la mise à jour du profil');
+      setSubmitting(false);
+    }
   };
 
-  const recentPosts = [
-    {
-      id: 1,
-      title: 'Comment débuter en programmation ?',
-      category: 'Questions',
-      replies: 5,
-      createdAt: 'Il y a 2 jours',
-    },
-    {
-      id: 2,
-      title: 'Présentation',
-      category: 'Général',
-      replies: 12,
-      createdAt: 'Il y a 1 semaine',
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black flex items-center justify-center">
+        <div className="text-center text-gray-400">
+          <div className="animate-spin inline-block w-12 h-12 border-4 border-current border-t-transparent rounded-full" role="status">
+            <span className="sr-only">Chargement...</span>
+          </div>
+          <p className="mt-4">Chargement du profil...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">{error || 'Profil non trouvé'}</p>
+          <Link
+            href="/topics"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-xl hover:shadow-blue-500/50 transition-all duration-200 font-semibold inline-block"
+          >
+            Retour aux topics
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black">
-      {/* Header */}
-      <header className="backdrop-blur-sm bg-gray-900/80 border-b border-gray-800/60 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/50">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                Forum
-              </span>
-            </Link>
-            <div className="flex gap-3">
-              <Link
-                href="/topics"
-                className="px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
-              >
-                Discussions
-              </Link>
-              <button className="px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200">
-                Déconnexion
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Profile Header */}
@@ -98,7 +183,7 @@ export default function Profile() {
                       {profile.username}
                     </h1>
                     <p className="text-gray-400 text-lg leading-relaxed max-w-2xl">
-                      {profile.bio}
+                      {profile.bio || 'Aucune biographie'}
                     </p>
                   </div>
                   {!isEditing && (
@@ -121,7 +206,7 @@ export default function Profile() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-white">{profile.postsCount}</p>
+                      <p className="text-2xl font-bold text-white">{profile.nombre_posts}</p>
                       <p className="text-sm text-gray-400">Posts</p>
                     </div>
                   </div>
@@ -133,7 +218,7 @@ export default function Profile() {
                     </div>
                     <div>
                       <p className="text-sm text-white font-medium">Membre depuis</p>
-                      <p className="text-sm text-gray-400">{profile.memberSince}</p>
+                      <p className="text-sm text-gray-400">{formatDate(profile.date_inscription)}</p>
                     </div>
                   </div>
                 </div>
@@ -150,37 +235,42 @@ export default function Profile() {
                 Modifier le profil
               </h2>
             </div>
+            {error && (
+              <div className="mx-8 mt-5 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400">
+                {error}
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="px-8 py-8">
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label
-                      htmlFor="firstName"
+                      htmlFor="first_name"
                       className="block text-sm font-semibold text-gray-300 mb-2"
                     >
                       Prénom
                     </label>
                     <input
                       type="text"
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
+                      id="first_name"
+                      name="first_name"
+                      value={formData.first_name}
                       onChange={handleChange}
                       className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                   </div>
                   <div>
                     <label
-                      htmlFor="lastName"
+                      htmlFor="last_name"
                       className="block text-sm font-semibold text-gray-300 mb-2"
                     >
                       Nom
                     </label>
                     <input
                       type="text"
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
+                      id="last_name"
+                      name="last_name"
+                      value={formData.last_name}
                       onChange={handleChange}
                       className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
@@ -227,17 +317,24 @@ export default function Profile() {
                   type="button"
                   onClick={() => {
                     setIsEditing(false);
-                    setFormData(profile);
+                    setFormData({
+                      first_name: profile.first_name || '',
+                      last_name: profile.last_name || '',
+                      email: profile.email || '',
+                      bio: profile.bio || ''
+                    });
                   }}
                   className="px-6 py-3 text-sm font-medium text-gray-300 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-all duration-200"
+                  disabled={submitting}
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-8 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-200"
+                  disabled={submitting}
+                  className="px-8 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Enregistrer
+                  {submitting ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
               </div>
             </form>
@@ -249,40 +346,46 @@ export default function Profile() {
           <div className="px-8 py-6 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border-b border-gray-700/60">
             <h2 className="text-2xl font-bold text-white">Posts récents</h2>
           </div>
-          <div className="divide-y divide-gray-700/60">
-            {recentPosts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/topics/${post.id}`}
-                className="group block px-8 py-6 hover:bg-gradient-to-r hover:from-blue-900/20 hover:to-indigo-900/20 transition-all duration-200"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm shadow-blue-500/50">
-                        {post.category}
-                      </span>
-                      <span className="text-sm text-gray-400">{post.createdAt}</span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
-                      {post.title}
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span>{post.replies} réponses</span>
+          {recentPosts.length === 0 ? (
+            <div className="px-8 py-12 text-center text-gray-400">
+              <p>Aucun post pour le moment. Créez votre premier topic !</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-700/60">
+              {recentPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/topics/${post.id}`}
+                  className="group block px-8 py-6 hover:bg-gradient-to-r hover:from-blue-900/20 hover:to-indigo-900/20 transition-all duration-200"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm shadow-blue-500/50">
+                          {post.category}
+                        </span>
+                        <span className="text-sm text-gray-400">{formatDateRelative(post.created_at)}</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                        {post.title}
+                      </h3>
+                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <span>{post.reply_count} réponse{post.reply_count > 1 ? 's' : ''}</span>
+                        </div>
                       </div>
                     </div>
+                    <svg className="w-6 h-6 text-gray-500 group-hover:text-blue-400 group-hover:translate-x-2 transition-all flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
-                  <svg className="w-6 h-6 text-gray-500 group-hover:text-blue-400 group-hover:translate-x-2 transition-all flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

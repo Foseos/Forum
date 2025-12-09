@@ -5,11 +5,16 @@ from .models import User
 # Transforme un Objet en JSON
 class UserSerializers(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    nombre_posts = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'password', 'first_name', 'last_name', 'bio', 'avatar', 'date_inscription', 'nombre_posts']
         read_only_fields = ['id', 'date_inscription', 'nombre_posts']
+
+    def get_nombre_posts(self, obj):
+        """Calcule dynamiquement le nombre de topics créés par l'utilisateur"""
+        return obj.topics.count()
 
     def create(self, validated_data):
         # Créer un utilisateur avec mot de passe crypté
