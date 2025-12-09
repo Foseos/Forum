@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Date de modification')),
                 ('likes', models.IntegerField(default=0, verbose_name='Nombre de likes')),
                 ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='replies', to=settings.AUTH_USER_MODEL, verbose_name='Auteur')),
-                ('topic', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='replies', to='topics.topic', verbose_name='Topic')),
+                ('topic', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='replies', to='topicsAPI.topic', verbose_name='Topic')),
             ],
             options={
                 'verbose_name': 'Réponse',

@@ -1,5 +1,5 @@
 from django.db import models
-from authentification.models import User
+from authentificationAPI.models import User
 
 
 class Topic(models.Model):

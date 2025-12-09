@@ -25,9 +25,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'authentification.apps.AuthentificationConfig',
-    'topics.apps.TopicsConfig',
-    'search.apps.SearchConfig',
+    'authentificationAPI.apps.AuthentificationapiConfig',
+    'topicsAPI.apps.TopicsapiConfig',
+    'searchAPI.apps.SearchapiConfig',
     'rest_framework',
     'rest_framework.authtoken',
 ]
@@ -47,7 +47,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-ROOT_URLCONF = 'backend.urls'
+ROOT_URLCONF = 'gestionAPI.urls'
 
 TEMPLATES = [
     {
@@ -64,7 +64,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'backend.wsgi.application'
+WSGI_APPLICATION = 'gestionAPI.wsgi.application'
 
 
 # Database
@@ -119,7 +119,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Custom User Model
-AUTH_USER_MODEL = 'authentification.User'
+AUTH_USER_MODEL = 'authentificationAPI.User'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -2,10 +2,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q, Count
 
-from authentification.models import User
-from authentification.serializers import UserSerializers
-from topics.models import Topic, Reply
-from topics.serializers import TopicListSerializer
+from authentificationAPI.models import User
+from authentificationAPI.serializers import UserSerializers
+from topicsAPI.models import Topic, Reply
+from topicsAPI.serializers import TopicListSerializer
 
 
 @api_view(['GET'])

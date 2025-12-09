@@ -98,20 +98,20 @@ Le frontend sera accessible sur `http://localhost:3000`
 ```
 Forum/
 ├── backend/                    # Backend Django
-│   ├── authentification/       # App d'authentification
+│   ├── authentificationAPI/    # App d'authentification
 │   │   ├── models.py          # Modèle User personnalisé
 │   │   ├── serializers.py     # Sérialiseurs User
 │   │   ├── views.py           # Vues d'authentification
 │   │   └── urls.py            # Routes d'authentification
-│   ├── topics/                # App de gestion des topics
+│   ├── topicsAPI/             # App de gestion des topics
 │   │   ├── models.py          # Modèles Topic et Reply
 │   │   ├── serializers.py     # Sérialiseurs Topic/Reply
 │   │   ├── views.py           # Vues CRUD topics
 │   │   └── urls.py            # Routes topics
-│   ├── search/                # App de recherche
+│   ├── searchAPI/             # App de recherche
 │   │   ├── views.py           # Recherche globale et stats
 │   │   └── urls.py            # Routes de recherche
-│   ├── backend/               # Configuration Django
+│   ├── gestionAPI/            # Configuration Django
 │   │   ├── settings.py        # Configuration principale
 │   │   └── urls.py            # Routes principales
 │   ├── media/                 # Fichiers uploadés (avatars)

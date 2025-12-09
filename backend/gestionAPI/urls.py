@@ -5,9 +5,9 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('authentification/', include('authentification.urls')),
-    path('topics/', include('topics.urls')),
-    path('search/', include('search.urls')),
+    path('authentification/', include('authentificationAPI.urls')),
+    path('topics/', include('topicsAPI.urls')),
+    path('search/', include('searchAPI.urls')),
 ]
 
 # Servir les fichiers médias en développement
