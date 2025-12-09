@@ -74,7 +74,7 @@ def get_current_user(request):
     Endpoint pour récupérer les informations de l'utilisateur connecté
     """
     user = request.user
-    serializer = UserSerializers(user)
+    serializer = UserSerializers(user, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -85,7 +85,7 @@ def update_profile(request):
     Endpoint pour mettre à jour le profil de l'utilisateur connecté
     """
     user = request.user
-    serializer = UserSerializers(user, data=request.data, partial=True)
+    serializer = UserSerializers(user, data=request.data, partial=True, context={'request': request})
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)

@@ -104,4 +104,31 @@ export const topicsAPI = {
     deleteReply: (id: number) => topicsApi.delete(`/replies/${id}/`)
 };
 
+// Instance axios pour la recherche
+const searchApi = axios.create({
+    baseURL: `${API_URL}/search/`
+});
+
+// Intercepteur pour ajouter le token aux requêtes de recherche
+searchApi.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Token ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// Fonctions pour la recherche
+export const searchAPI = {
+    // Recherche globale (topics + utilisateurs)
+    globalSearch: (query: string) => searchApi.get('/', { params: { q: query } }),
+    // Récupérer les statistiques du forum
+    getForumStats: () => searchApi.get('/stats/')
+};
+
 export default authApi;

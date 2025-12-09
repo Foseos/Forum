@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'authentification.apps.AuthentificationConfig',
     'topics.apps.TopicsConfig',
+    'search.apps.SearchConfig',
     'rest_framework',
     'rest_framework.authtoken',
 ]

@@ -1,43 +1,80 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { APP_CONFIG } from './config';
+import Navbar from './components/Navbar';
+
+interface ForumStats {
+  total_users: number;
+  total_topics: number;
+  total_replies: number;
+}
 
 export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [stats, setStats] = useState<ForumStats>({
+    total_users: 0,
+    total_topics: 0,
+    total_replies: 0
+  });
+
+  useEffect(() => {
+    // Vérifier si l'utilisateur est connecté
+    const token = localStorage.getItem('token');
+    setIsAuthenticated(!!token);
+
+    // Récupérer les statistiques du forum
+    const fetchStats = async () => {
+      try {
+        const { searchAPI } = await import('./api');
+        const response = await searchAPI.getForumStats();
+        setStats(response.data);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des statistiques:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black">
-      {/* Header */}
-      <header className="backdrop-blur-sm bg-gray-900/80 border-b border-gray-800/60 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/50">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+      {/* Header - afficher Navbar si connecté, sinon header public */}
+      {isAuthenticated ? (
+        <Navbar showNewTopicButton={true} />
+      ) : (
+        <header className="backdrop-blur-sm bg-gray-900/80 border-b border-gray-800/60 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/50">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                    {APP_CONFIG.forumName}
+                  </h1>
+                </div>
+                <div className="flex gap-3">
+                  <Link
+                    href="/auth/login"
+                    className="px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
+                  >
+                    Connexion
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-200"
+                  >
+                    Inscription
+                  </Link>
+                </div>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                {APP_CONFIG.forumName}
-              </h1>
             </div>
-            <div className="flex gap-3">
-              <Link
-                href="/auth/login"
-                className="px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
-              >
-                Connexion
-              </Link>
-              <Link
-                href="/auth/register"
-                className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-200"
-              >
-                Inscription
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+          </header>
+      )}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -75,7 +112,9 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-sm font-medium text-gray-400 mb-2">Membres actifs</h3>
-              <p className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">1,234</p>
+              <p className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                {stats.total_users.toLocaleString()}
+              </p>
             </div>
           </div>
 
@@ -88,7 +127,9 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-sm font-medium text-gray-400 mb-2">Discussions</h3>
-              <p className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">567</p>
+              <p className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                {stats.total_topics.toLocaleString()}
+              </p>
             </div>
           </div>
 
@@ -101,7 +142,9 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-sm font-medium text-gray-400 mb-2">Messages</h3>
-              <p className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">8,901</p>
+              <p className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                {stats.total_replies.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>

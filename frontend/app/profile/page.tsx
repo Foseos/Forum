@@ -12,6 +12,7 @@ interface UserProfile {
   first_name: string;
   last_name: string;
   bio: string;
+  avatar: string | null;
   date_inscription: string;
   nombre_posts: number;
 }
@@ -37,6 +38,8 @@ export default function Profile() {
     email: '',
     bio: ''
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -114,6 +117,19 @@ export default function Profile() {
     });
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      // Créer une prévisualisation
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -121,10 +137,28 @@ export default function Profile() {
 
     try {
       const { authAPI } = await import('../api');
-      const response = await authAPI.updateProfile(formData);
-      setProfile(response.data);
+
+      // Si un fichier avatar est sélectionné, envoyer en FormData
+      if (avatarFile) {
+        const formDataToSend = new FormData();
+        formDataToSend.append('first_name', formData.first_name);
+        formDataToSend.append('last_name', formData.last_name);
+        formDataToSend.append('email', formData.email);
+        formDataToSend.append('bio', formData.bio);
+        formDataToSend.append('avatar', avatarFile);
+
+        const response = await authAPI.updateProfile(formDataToSend);
+        setProfile(response.data);
+      } else {
+        // Sinon, envoyer en JSON
+        const response = await authAPI.updateProfile(formData);
+        setProfile(response.data);
+      }
+
       setIsEditing(false);
       setSubmitting(false);
+      setAvatarFile(null);
+      setAvatarPreview(null);
     } catch (err: any) {
       console.error('Erreur lors de la mise à jour du profil:', err);
       setError('Erreur lors de la mise à jour du profil');
@@ -172,9 +206,17 @@ export default function Profile() {
           <div className="relative px-8 py-10">
             <div className="flex items-start gap-8">
               <div className="flex-shrink-0">
-                <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl shadow-blue-500/50 ring-4 ring-gray-900">
-                  {profile.username[0]}
-                </div>
+                {profile.avatar ? (
+                  <img
+                    src={profile.avatar}
+                    alt={profile.username}
+                    className="w-32 h-32 rounded-2xl object-cover shadow-2xl shadow-blue-500/50 ring-4 ring-gray-900"
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl shadow-blue-500/50 ring-4 ring-gray-900">
+                    {profile.username[0]}
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-3">
@@ -242,6 +284,45 @@ export default function Profile() {
             )}
             <form onSubmit={handleSubmit} className="px-8 py-8">
               <div className="space-y-6">
+                {/* Avatar Upload */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-3">
+                    Photo de profil
+                  </label>
+                  <div className="flex items-center gap-6">
+                    <div className="flex-shrink-0">
+                      {avatarPreview ? (
+                        <img
+                          src={avatarPreview}
+                          alt="Aperçu"
+                          className="w-24 h-24 rounded-xl object-cover shadow-lg shadow-blue-500/50 ring-2 ring-blue-500"
+                        />
+                      ) : profile.avatar ? (
+                        <img
+                          src={profile.avatar}
+                          alt={profile.username}
+                          className="w-24 h-24 rounded-xl object-cover shadow-lg"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                          {profile.username[0]}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="block w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer cursor-pointer transition-all"
+                      />
+                      <p className="mt-2 text-xs text-gray-500">
+                        PNG, JPG ou GIF. Taille maximale : 5MB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label
@@ -323,6 +404,8 @@ export default function Profile() {
                       email: profile.email || '',
                       bio: profile.bio || ''
                     });
+                    setAvatarFile(null);
+                    setAvatarPreview(null);
                   }}
                   className="px-6 py-3 text-sm font-medium text-gray-300 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-all duration-200"
                   disabled={submitting}
